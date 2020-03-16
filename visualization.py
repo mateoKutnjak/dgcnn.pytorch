@@ -7,6 +7,13 @@ colors = ['r', 'g', 'b', 'y']
 
 
 def plot_partseg(pointcloud, seg):
+    """
+    Plots pointcloud and colors each point based on points segmentation class.
+
+    Parameters:
+    pointcloud (torch.Tensor [batch_size x 3 x num_points]): pointcloud
+    seg (torch.Tensor [batch_size x num_points]): segmentation classes for each point
+    """
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
 
@@ -27,7 +34,16 @@ def plot_partseg(pointcloud, seg):
 
 
 def preserve_ratio(ax, x, y, z):
-    # Set limits to axis to preserve object ratio
+    """
+    Based on (x,y,z) coordinates of pointcloud, limits of matplotlib Axes are set
+    to preserve scale of 3D plot
+
+    Parameters:
+    ax (matplotlib.axes._subplots.Axes3DSubplot): matplotlib Axes object
+    x (numpy.ndarray [num_points,]): x coordinates of pointcloud
+    y (numpy.ndarray [num_points,]): y coordinates of pointcloud
+    z (numpy.ndarray [num_points,]): z coordinates of pointcloud
+    """
     max_range = np.array([x.max()-x.min(), y.max()-y.min(), z.max()-z.min()]).max() / 2.0
 
     mid_x = (x.max()+ x.min()) * 0.5
