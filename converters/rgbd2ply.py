@@ -95,7 +95,7 @@ def generate_pointcloud(args):
                     rgb[u, v, 0], rgb[u, v, 1], rgb[u, v, 2]))
             else:
                 points.append("%f %f %f 0\n"%(X[u, v], Y[u, v], Z[u, v]))
-    print('Conversion took {} seconds'.format(time.time() - start_time)
+    print('Conversion took {} seconds'.format(time.time() - start_time))
 
     write_ply(points, args.output, use_rgb=args.rgb != None)
 
