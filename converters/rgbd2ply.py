@@ -69,16 +69,12 @@ def generate_pointcloud(args):
     Parameters
     args (argparse.Namespace): cmd line arguments for pointcloud generation 
     """
-    import time
-    start_time = time.time()
     rgb, depth = read_inputs(args.rgb, args.depth)
 
     points = []
 
-    X = np.arange(depth.shape[0])
-    Y = np.arange(depth.shape[1])
-    X = np.tile(X, (depth.shape[1], 1))
-    Y = np.tile(Y, (depth.shape[0], 1)).T
+    X = np.tile(np.arange(depth.shape[0]), (depth.shape[1], 1))
+    Y = np.tile(np.arange(depth.shape[1]), (depth.shape[0], 1)).T
 
     Z = depth / args.scaling_factor
     X = np.multiply(X-args.cx, Z) / args.fx
@@ -90,8 +86,6 @@ def generate_pointcloud(args):
     else:
         for x, y, z in np.nditer([X, Y, Z]):
             points.append("%f %f %f 0\n"%(x, y, z))
-
-    print('Conversion took {} seconds'.format(time.time() - start_time))
 
     write_ply(points, args.output, use_rgb=args.rgb != None)
 
