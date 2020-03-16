@@ -70,7 +70,7 @@ def generate_pointcloud(args):
     """
     rgb, depth = read_inputs(args.rgb, args.depth)
 
-    points = []    
+    points = []
     for v in range(depth.shape[1]):
         for u in range(depth.shape[0]):
             if depth[u, v] == 0:
