@@ -84,17 +84,13 @@ def generate_pointcloud(args):
     X = np.multiply(X-args.cx, Z) / args.fx
     Y = np.multiply(Y-args.cy, Z) / args.fy
 
-    for v in range(depth.shape[1]):
-        for u in range(depth.shape[0]):
-            if Z[u, v] == 0:
-                continue
-            
-            if rgb is not None:
-                points.append("%f %f %f %d %d %d 0\n"%(
-                    X[u, v], Y[u, v], Z[u, v], 
-                    rgb[u, v, 0], rgb[u, v, 1], rgb[u, v, 2]))
-            else:
-                points.append("%f %f %f 0\n"%(X[u, v], Y[u, v], Z[u, v]))
+    if rgb is not None:
+        for x, y, z, r, g, b in np.nditer([X, Y, Z, rgb[..., 0], rgb[..., 1], rgb[..., 2]]):
+            points.append("%f %f %f %d %d %d 0\n"%(x, y, z, r, g, b))
+    else:
+        for x, y, z in np.nditer([X, Y, Z]):
+            points.append("%f %f %f 0\n"%(x, y, z))
+
     print('Conversion took {} seconds'.format(time.time() - start_time))
 
     write_ply(points, args.output, use_rgb=args.rgb != None)
