@@ -7,6 +7,27 @@ import cv2
 import imageio
 
 
+def write_ply(points, output_filename, use_rgb=False):
+    file = open(output_filename, "w")
+    
+    file.write('''ply
+format ascii 1.0
+element vertex %d
+property float x
+property float y
+property float z
+%s
+property uchar alpha
+end_header
+%s
+'''%(len(points), '''property uchar red
+property uchar green
+property uchar blue
+''' if use_rgb else '', "".join(points)))
+    
+    file.close()
+
+
 def generate_pointcloud(args):
     """
     Generate point cloud in PLY format from depth and optionally rgb image.
@@ -38,24 +59,7 @@ def generate_pointcloud(args):
             else:
                 points.append("%f %f %f 0\n"%(X, Y, Z))
 
-    file = open(args.output, "w")
-    
-    file.write('''ply
-format ascii 1.0
-element vertex %d
-property float x
-property float y
-property float z
-%s
-property uchar alpha
-end_header
-%s
-'''%(len(points), '''property uchar red
-property uchar green
-property uchar blue
-''' if args.rgb else '', "".join(points)))
-    
-    file.close()
+    write_ply(points, args.output, use_rgb=args.rgb != None)
 
 
 if __name__ == '__main__':
