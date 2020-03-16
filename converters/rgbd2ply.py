@@ -39,6 +39,7 @@ def generate_pointcloud(args):
                 points.append("%f %f %f 0\n"%(X, Y, Z))
 
     file = open(args.output, "w")
+    
     file.write('''ply
 format ascii 1.0
 element vertex %d
@@ -53,13 +54,14 @@ end_header
 property uchar green
 property uchar blue
 ''' if args.rgb else '', "".join(points)))
+    
     file.close()
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     
-    parser.add_argument('--rgb', '-r', help='input RGB image (format: .png)')
+    parser.add_argument('--rgb', '-r', help='input RGB image - optional (format: .png)')
     parser.add_argument('--depth', '-d', required=True, help='input depth image (format: .exr)')
     parser.add_argument('--output', '-o', required=True, help='output pointcloud file (format: .ply)')
     parser.add_argument('--fx', type=float, required=True, help='focal length x')
