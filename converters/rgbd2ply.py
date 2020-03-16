@@ -5,6 +5,7 @@ if "/opt/ros/kinetic/lib/python2.7/dist-packages" in sys.path:
     sys.path.remove("/opt/ros/kinetic/lib/python2.7/dist-packages")
 import cv2
 import imageio
+import numpy as np
 
 
 def write_ply(points, output_filename, use_rgb=False):
@@ -68,23 +69,33 @@ def generate_pointcloud(args):
     Parameters
     args (argparse.Namespace): cmd line arguments for pointcloud generation 
     """
+    import time
+    start_time = time.time()
     rgb, depth = read_inputs(args.rgb, args.depth)
 
     points = []
+
+    X = np.arange(depth.shape[0])
+    Y = np.arange(depth.shape[1])
+    X = np.tile(X, (depth.shape[1], 1))
+    Y = np.tile(Y, (depth.shape[0], 1)).T
+
+    Z = depth / args.scaling_factor
+    X = np.multiply(X-args.cx, Z) / args.fx
+    Y = np.multiply(Y-args.cy, Z) / args.fy
+
     for v in range(depth.shape[1]):
         for u in range(depth.shape[0]):
-            if depth[u, v] == 0:
+            if Z[u, v] == 0:
                 continue
             
-            Z = depth[u, v] / args.scaling_factor
-            X = (u - args.cx) * Z / args.fx
-            Y = (v - args.cy) * Z / args.fy
-            
             if rgb is not None:
-                color = rgb[u, v]
-                points.append("%f %f %f %d %d %d 0\n"%(X, Y, Z, color[0], color[1], color[2]))
+                points.append("%f %f %f %d %d %d 0\n"%(
+                    X[u, v], Y[u, v], Z[u, v], 
+                    rgb[u, v, 0], rgb[u, v, 1], rgb[u, v, 2]))
             else:
-                points.append("%f %f %f 0\n"%(X, Y, Z))
+                points.append("%f %f %f 0\n"%(X[u, v], Y[u, v], Z[u, v]))
+    print('Conversion took {} seconds'.format(time.time() - start_time)
 
     write_ply(points, args.output, use_rgb=args.rgb != None)
 
