@@ -63,6 +63,19 @@ def read_inputs(rgb_file, depth_file, mask_file):
 
 
 def crop_inputs(rgb, depth, mask):
+    """
+    Crops RGB and depth image to leave only object data. 
+    Cropping is done with bounding box from segmentation mask.
+
+    Parameters:
+    rgb (numpy.ndarray [h x w x 3]) RGB image
+    depth (numpy.ndarray [h x w]) depth image
+    mask (numpy.ndarray [h x w]) segmentation mask image
+
+    Returns:
+        (numpy.ndarray [cropped_h x cropped_w x 3]) cropped RGB
+        (numpy.ndarray [cropped_h x cropped_w]) cropped depth
+    """
     x1, y1, x2, y2 = bbox_from_mask(mask)
 
     if rgb is not None:
@@ -80,7 +93,7 @@ def bbox_from_mask(mask):
     mask (numpy.ndarray) one-channel segmenation mask
 
     Returns:
-    Bounding box in format (x1, y1, x2, y2)
+        (int, int, int, int): bounding box in format (x1, y1, x2, y2)
     """
     mask_pixels = np.where(mask > 0)
 
@@ -105,14 +118,14 @@ def generate_pointcloud(args):
     rgb, depth, mask = read_inputs(args.rgb, args.depth, args.mask)
     rgb, depth = crop_inputs(rgb, depth, mask)
 
-    points = []
-
     X = np.tile(np.arange(depth.shape[1]), (depth.shape[0], 1))
     Y = np.tile(np.arange(depth.shape[0]), (depth.shape[1], 1)).T
 
     Z = depth / args.scaling_factor
     X = np.multiply(X-args.cx, Z) / args.fx
     Y = np.multiply(Y-args.cy, Z) / args.fy
+
+    points = []
 
     if rgb is not None:
         for x, y, z, r, g, b in np.nditer([X, Y, Z, rgb[..., 0], rgb[..., 1], rgb[..., 2]]):
