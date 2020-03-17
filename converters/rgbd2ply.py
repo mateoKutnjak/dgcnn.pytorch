@@ -37,7 +37,7 @@ property uchar blue
     file.close()
 
 
-def read_inputs(rgb_file, depth_file):
+def read_inputs(rgb_file, depth_file, mask_file):
     """
     Read RGB and depth files.
 
@@ -53,13 +53,46 @@ def read_inputs(rgb_file, depth_file):
     if rgb_file is not None:
         rgb = cv2.imread(args.rgb)
         rgb = cv2.cvtColor(rgb, cv2.COLOR_BGR2RGB)
-
     depth = cv2.imread(args.depth, cv2.IMREAD_ANYCOLOR | cv2.IMREAD_ANYDEPTH)[:, :, 0]
+    mask = cv2.imread(mask_file, cv2.IMREAD_GRAYSCALE)
 
     if args.rgb is not None and (rgb.shape[:2] != depth.shape):
         raise Exception("Color and depth image do not have the same resolution.")
 
+    return rgb, depth, mask
+
+
+def crop_inputs(rgb, depth, mask):
+    x1, y1, x2, y2 = bbox_from_mask(mask)
+
+    if rgb is not None:
+        rgb = rgb[y1:y2, x1:x2, :]
+    depth = depth[y1:y2, x1:x2]
+
     return rgb, depth
+
+def bbox_from_mask(mask):
+    """
+    Extract bounding box from segmentation mask. Every 
+    positive value pixel is regarded as mask pixel.
+
+    Parameters:
+    mask (numpy.ndarray) one-channel segmenation mask
+
+    Returns:
+    Bounding box in format (x1, y1, x2, y2)
+    """
+    mask_pixels = np.where(mask > 0)
+
+    if len(mask_pixels[0]) == 0:
+        return -1, -1, -1, -1
+
+    bbox_x1 = int(np.min(mask_pixels[1]))
+    bbox_y1 = int(np.min(mask_pixels[0]))
+    bbox_x2 = int(np.max(mask_pixels[1]))
+    bbox_y2 = int(np.max(mask_pixels[0]))
+
+    return bbox_x1, bbox_y1, bbox_x2, bbox_y2
 
 
 def generate_pointcloud(args):
@@ -69,12 +102,13 @@ def generate_pointcloud(args):
     Parameters
     args (argparse.Namespace): cmd line arguments for pointcloud generation 
     """
-    rgb, depth = read_inputs(args.rgb, args.depth)
+    rgb, depth, mask = read_inputs(args.rgb, args.depth, args.mask)
+    rgb, depth = crop_inputs(rgb, depth, mask)
 
     points = []
 
-    X = np.tile(np.arange(depth.shape[0]), (depth.shape[1], 1))
-    Y = np.tile(np.arange(depth.shape[1]), (depth.shape[0], 1)).T
+    X = np.tile(np.arange(depth.shape[1]), (depth.shape[0], 1))
+    Y = np.tile(np.arange(depth.shape[0]), (depth.shape[1], 1)).T
 
     Z = depth / args.scaling_factor
     X = np.multiply(X-args.cx, Z) / args.fx
@@ -95,6 +129,7 @@ if __name__ == '__main__':
     
     parser.add_argument('--rgb', '-r', help='input RGB image - optional (format: .png)')
     parser.add_argument('--depth', '-d', required=True, help='input depth image (format: .exr)')
+    parser.add_argument('--mask', '-m', required=True, help='input mask image (format: .png)')
     parser.add_argument('--output', '-o', required=True, help='output pointcloud file (format: .ply)')
     parser.add_argument('--fx', type=float, required=True, help='focal length x')
     parser.add_argument('--fy', type=float, required=True, help='focal length y')
