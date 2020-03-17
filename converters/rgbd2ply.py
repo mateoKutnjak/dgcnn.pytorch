@@ -6,35 +6,7 @@ if "/opt/ros/kinetic/lib/python2.7/dist-packages" in sys.path:
 import cv2
 import imageio
 import numpy as np
-
-
-def write_ply(points, output_filename, use_rgb=False):
-    """
-    Writes points of pointcloud to .ply file
-
-    Parameters:
-    points (numpy.ndarray): pointcloud points
-    output_filename (str): output filename
-    use_rgb (bool): is pointcloud RGBD or depth only
-    """
-    file = open(output_filename, "w")
-    
-    file.write('''ply
-format ascii 1.0
-element vertex %d
-property float x
-property float y
-property float z
-%s
-property uchar alpha
-end_header
-%s
-'''%(len(points), '''property uchar red
-property uchar green
-property uchar blue
-''' if use_rgb else '', "".join(points)))
-    
-    file.close()
+import writer
 
 
 def read_inputs(rgb_file, depth_file, mask_file):
@@ -84,6 +56,7 @@ def crop_inputs(rgb, depth, mask):
 
     return rgb, depth
 
+
 def bbox_from_mask(mask):
     """
     Extract bounding box from segmentation mask. Every 
@@ -125,16 +98,11 @@ def generate_pointcloud(args):
     X = np.multiply(X-args.cx, Z) / args.fx
     Y = np.multiply(Y-args.cy, Z) / args.fy
 
-    points = []
-
-    if rgb is not None:
-        for x, y, z, r, g, b in np.nditer([X, Y, Z, rgb[..., 0], rgb[..., 1], rgb[..., 2]]):
-            points.append("%f %f %f %d %d %d 0\n"%(x, y, z, r, g, b))
-    else:
-        for x, y, z in np.nditer([X, Y, Z]):
-            points.append("%f %f %f 0\n"%(x, y, z))
-
-    write_ply(points, args.output, use_rgb=args.rgb != None)
+    writer.write(X, Y, Z, 
+        rgb=rgb,
+        mask=mask, 
+        output_filename=args.output
+    )
 
 
 if __name__ == '__main__':
