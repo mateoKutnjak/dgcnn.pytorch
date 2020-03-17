@@ -53,8 +53,9 @@ def crop_inputs(rgb, depth, mask):
     if rgb is not None:
         rgb = rgb[y1:y2, x1:x2, :]
     depth = depth[y1:y2, x1:x2]
+    mask = mask[y1:y2, x1:x2]
 
-    return rgb, depth
+    return rgb, depth, mask
 
 
 def bbox_from_mask(mask):
@@ -89,7 +90,7 @@ def generate_pointcloud(args):
     args (argparse.Namespace): cmd line arguments for pointcloud generation 
     """
     rgb, depth, mask = read_inputs(args.rgb, args.depth, args.mask)
-    rgb, depth = crop_inputs(rgb, depth, mask)
+    rgb, depth, mask = crop_inputs(rgb, depth, mask)
 
     X = np.tile(np.arange(depth.shape[1]), (depth.shape[0], 1))
     Y = np.tile(np.arange(depth.shape[0]), (depth.shape[1], 1)).T

@@ -2,28 +2,41 @@ import numpy as np
 import h5py
 
 
-def write(X, Y, Z, **kwargs):
+def write(X, Y, Z, point_num=2048, **kwargs):
+    if X.size > point_num:
+        random_pixels = np.random.choice(X.shape[0]*X.shape[1], size=point_num, replace=False)
+        random_pixels = np.unravel_index(random_pixels, X.shape)
+
+        X = X[random_pixels]
+        Y = Y[random_pixels]
+        Z = Z[random_pixels]
+        if kwargs.get('rgb') is not None:
+            kwargs['rgb'] = kwargs.get('rgb')[random_pixels]
+        kwargs['mask'] = kwargs.get('mask')[random_pixels]
+
     if kwargs.get('output_filename').endswith('.ply'):
-        write_ply(X, Y, Z, **kwargs)
+        write_ply(X, Y, Z, point_num, **kwargs)
     elif kwargs.get('output_filename').endswith('.h5'):
-        write_h5(X, Y, Z, **kwargs)
+        write_h5(X, Y, Z, point_num,**kwargs)
     else:
         raise Exception("Unsupported pointcloud output type.")
 
 
-def write_h5(points, mask, output_filename):
-    pass
-    # f = h5py.File(output_filename, "w")
-    
-    # data = f.create_group("data")
-    # label = f.create_group("label")
-    # seg = f.create_group("seg")
+def write_h5(X, Y, Z, point_num, **kwargs):
+    with h5py.File(kwargs.get('output_filename'), "w") as f:
+        _data = np.vstack((X, Y, Z)).T
+        _data = np.expand_dims(_data, axis=0)
+        _label = np.array([1])
+        _label = np.expand_dims(_label, axis=0)
+        _seg = kwargs.get('mask')
+        _seg = np.expand_dims(_seg, axis=0)
+        
+        data = f.create_dataset('data', data=_data)
+        label = f.create_dataset("label", data=_label)
+        seg = f.create_dataset("seg", data=_seg)
 
-    # import pdb
-    # pdb.set_trace()
 
-
-def write_ply(X, Y, Z, **kwargs):
+def write_ply(X, Y, Z, point_num, **kwargs):
     points = []
 
     rgb = kwargs.get('rgb')
