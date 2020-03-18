@@ -2,9 +2,21 @@ import numpy as np
 import h5py
 
 
-def write(X, Y, Z, point_num=2048, **kwargs):
-    if X.size > point_num:
-        random_pixels = np.random.choice(X.shape[0]*X.shape[1], size=point_num, replace=False)
+def write(X, Y, Z, limit_num=2048, **kwargs):
+    """
+    Creates file from pointcloud coordinates and 
+    limits number of points for writing.
+
+    Supported file formats are .h5 and .ply
+
+    Parameters:
+    X (numpy.ndarray [num_points]): x coordinates
+    Y (numpy.ndarray [num_points]): y coordinates
+    Z (numpy.ndarray [num_points]): z coordinates
+    limit_num (int): pointcloud points number limit
+    """
+    if X.size > limit_num:
+        random_pixels = np.random.choice(X.shape[0]*X.shape[1], size=limit_num, replace=False)
         random_pixels = np.unravel_index(random_pixels, X.shape)
 
         X = X[random_pixels]
@@ -15,14 +27,14 @@ def write(X, Y, Z, point_num=2048, **kwargs):
         kwargs['mask'] = kwargs.get('mask')[random_pixels]
 
     if kwargs.get('output_filename').endswith('.ply'):
-        write_ply(X, Y, Z, point_num, **kwargs)
+        _write_ply(X, Y, Z, limit_num, **kwargs)
     elif kwargs.get('output_filename').endswith('.h5'):
-        write_h5(X, Y, Z, point_num,**kwargs)
+        _write_h5(X, Y, Z, limit_num,**kwargs)
     else:
         raise Exception("Unsupported pointcloud output type.")
 
 
-def write_h5(X, Y, Z, point_num, **kwargs):
+def _write_h5(X, Y, Z, limit_num, **kwargs):
     with h5py.File(kwargs.get('output_filename'), "w") as f:
         _data = np.vstack((X, Y, Z)).T
         _data = np.expand_dims(_data, axis=0)
@@ -36,7 +48,7 @@ def write_h5(X, Y, Z, point_num, **kwargs):
         seg = f.create_dataset("seg", data=_seg)
 
 
-def write_ply(X, Y, Z, point_num, **kwargs):
+def _write_ply(X, Y, Z, limit_num, **kwargs):
     points = []
 
     rgb = kwargs.get('rgb')
