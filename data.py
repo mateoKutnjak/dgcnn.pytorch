@@ -115,6 +115,31 @@ def load_data_partseg(partition):
     return all_data, all_label, all_seg
 
 
+def load_data_custom_partseg(partition):
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    DATA_DIR = os.path.join(BASE_DIR, 'data')
+    all_data = []
+    all_label = []
+    all_seg = []
+    if partition == 'trainval':
+        file = glob.glob(os.path.join(DATA_DIR, 'custom*hdf5*', '*train*.h5')) \
+               + glob.glob(os.path.join(DATA_DIR, 'custom*hdf5*', '*val*.h5'))
+    else:
+        file = glob.glob(os.path.join(DATA_DIR, 'custom*hdf5*', '*%s*.h5'%partition))
+    for h5_name in file:
+        f = h5py.File(h5_name, 'r+')
+        data = f['data'][:].astype('float32')
+        label = f['label'][:].astype('int64')
+        seg = f['pid'][:].astype('int64')
+        f.close()
+        all_data.append(data)
+        all_label.append(label)
+        all_seg.append(seg)
+    all_data = np.concatenate(all_data, axis=0)
+    all_label = np.concatenate(all_label, axis=0)
+    all_seg = np.concatenate(all_seg, axis=0)
+    return all_data, all_label, all_seg
+
 def prepare_test_data_semseg():
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     DATA_DIR = os.path.join(BASE_DIR, 'data')
@@ -223,6 +248,44 @@ class ShapeNetPart(Dataset):
             self.seg_start_index = self.index_start[id_choice]
         else:
             self.seg_num_all = 50
+            self.seg_start_index = 0
+
+    def __getitem__(self, item):
+        pointcloud = self.data[item][:self.num_points]
+        label = self.label[item]
+        seg = self.seg[item][:self.num_points]
+        if self.partition == 'train':
+            # pointcloud = translate_pointcloud(pointcloud)
+            indices = list(range(pointcloud.shape[0]))
+            np.random.shuffle(indices)
+            pointcloud = pointcloud[indices]
+            seg = seg[indices]
+        return pointcloud, label, seg
+
+    def __len__(self):
+        return self.data.shape[0]
+
+
+class CustomShapeNetPart(Dataset):
+    def __init__(self, num_points, partition='train', class_choice=None):
+        self.data, self.label, self.seg = load_data_custom_partseg(partition)
+        self.cat2id = {'background': 0, 'valve': 1}
+        self.seg_num = [2]
+        self.index_start = [0]
+        self.num_points = num_points
+        self.partition = partition        
+        self.class_choice = class_choice
+
+        if self.class_choice != None:
+            id_choice = self.cat2id[self.class_choice]
+            indices = (self.label == id_choice).squeeze()
+            self.data = self.data[indices]
+            self.label = self.label[indices]
+            self.seg = self.seg[indices]
+            self.seg_num_all = self.seg_num[id_choice]
+            self.seg_start_index = self.index_start[id_choice]
+        else:
+            self.seg_num_all = 2
             self.seg_start_index = 0
 
     def __getitem__(self, item):
