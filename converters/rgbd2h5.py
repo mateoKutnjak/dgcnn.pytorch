@@ -122,6 +122,7 @@ def load_inputs(example_path, obj_name, root):
 
     return depth, mask
 
+
 def preprocess(depth, mask):
     bbox = util.get_bbox_from_mask(mask)
     return util.crop_data(depth, mask, bbox)
@@ -149,7 +150,7 @@ def write(dataset, filename):
     with h5py.File(filename, "w") as f:
         data = f.create_dataset('data', data=dataset['data'])
         label = f.create_dataset("label", data=dataset['label'])
-        seg = f.create_dataset("seg", data=dataset['seg'])
+        pid = f.create_dataset("pid", data=dataset['seg'])
 
 
 def execute(args):
@@ -157,8 +158,8 @@ def execute(args):
     example_paths = get_example_paths(args.dataset_root, split=args.train_test_split, shuffle=True)
     train_dataset, test_dataset = create_dataset(example_paths, root=args.dataset_root)
 
-    write(train_dataset, 'train.h5')
-    write(test_dataset, 'test.h5')
+    write(train_dataset, 'ply_data_train0.h5')
+    write(test_dataset, 'ply_data_test0.h5')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
