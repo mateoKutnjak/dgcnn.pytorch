@@ -114,8 +114,8 @@ def train(args, io):
         train_pred_seg = []
         train_label_seg = []
         for data, label, seg in train_loader:
-            import visualization
-            visualization.plot_partseg(data, seg)
+            # import visualization
+            # visualization.plot_partseg(data, seg)
             seg = seg - seg_start_index
             label_one_hot = np.zeros((label.shape[0], 16))
             for idx in range(label.shape[0]):
@@ -128,6 +128,8 @@ def train(args, io):
             seg_pred = model(data, label_one_hot)
             seg_pred = seg_pred.permute(0, 2, 1).contiguous()
             loss = criterion(seg_pred.view(-1, seg_num_all), seg.view(-1,1).squeeze())
+            if count % 100 == 0:
+                print('Iter: {}, Loss: {}'.format(count, loss.item()))
             loss.backward()
             opt.step()
             pred = seg_pred.max(dim=2)[1]               # (batch_size, num_points)
@@ -251,8 +253,8 @@ def test(args, io):
         seg_pred = model(data, label_one_hot)
         seg_pred = seg_pred.permute(0, 2, 1).contiguous()
         pred = seg_pred.max(dim=2)[1]
-        # import visualization
-        # visualization.plot_partseg(data, seg)
+        import visualization
+        visualization.plot_partseg(data, pred)
         seg_np = seg.cpu().numpy()
         pred_np = pred.detach().cpu().numpy()
         test_true_cls.append(seg_np.reshape(-1))
