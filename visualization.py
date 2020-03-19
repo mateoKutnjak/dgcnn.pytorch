@@ -20,6 +20,9 @@ def plot_partseg(pointcloud, seg):
     _pointcloud = pointcloud.cpu().detach().numpy()
     _seg = seg.cpu().detach().numpy()
 
+    if _pointcloud.shape[2] == 3:
+        _pointcloud = np.transpose(_pointcloud, (0, 2, 1))
+
     x = _pointcloud[0, 0, :]
     y = _pointcloud[0, 1, :]
     z = _pointcloud[0, 2, :]
