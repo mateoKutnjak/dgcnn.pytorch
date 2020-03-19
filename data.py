@@ -269,9 +269,9 @@ class ShapeNetPart(Dataset):
 class CustomShapeNetPart(Dataset):
     def __init__(self, num_points, partition='train', class_choice=None):
         self.data, self.label, self.seg = load_data_custom_partseg(partition)
-        self.cat2id = {'background': 0, 'valve': 1}
-        self.seg_num = [2]
-        self.index_start = [0]
+        self.cat2id = {'background': 0, 'ring': 1, 'middle': 2} # NEEDS TO BE CHANGED WHEN UPDATING DATASET
+        self.seg_num = [3]  # NEEDS TO BE CHANGED WHEN UPDATING DATASET
+        self.index_start = [0] # NEEDS TO BE CHANGED WHEN UPDATING DATASET
         self.num_points = num_points
         self.partition = partition        
         self.class_choice = class_choice
@@ -285,7 +285,7 @@ class CustomShapeNetPart(Dataset):
             self.seg_num_all = self.seg_num[id_choice]
             self.seg_start_index = self.index_start[id_choice]
         else:
-            self.seg_num_all = 2
+            self.seg_num_all = 3 # NEEDS TO BE CHANGED WHEN UPDATING DATASET
             self.seg_start_index = 0
 
     def __getitem__(self, item):
