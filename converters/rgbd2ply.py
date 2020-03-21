@@ -48,14 +48,15 @@ def crop_inputs(rgb, depth, mask):
         (numpy.ndarray [cropped_h x cropped_w x 3]) cropped RGB
         (numpy.ndarray [cropped_h x cropped_w]) cropped depth
     """
-    x1, y1, x2, y2 = bbox_from_mask(mask)
+    bbox = bbox_from_mask(mask)
+    x1, y1, x2, y2 = bbox
 
     if rgb is not None:
         rgb = rgb[y1:y2, x1:x2, :]
     depth = depth[y1:y2, x1:x2]
     mask = mask[y1:y2, x1:x2]
 
-    return rgb, depth, mask
+    return rgb, depth, mask, bbox
 
 
 def bbox_from_mask(mask):
@@ -90,10 +91,10 @@ def generate_pointcloud(args):
     args (argparse.Namespace): cmd line arguments for pointcloud generation 
     """
     rgb, depth, mask = read_inputs(args.rgb, args.depth, args.mask)
-    rgb, depth, mask = crop_inputs(rgb, depth, mask)
+    rgb, depth, mask, bbox = crop_inputs(rgb, depth, mask)
 
-    X = np.tile(np.arange(depth.shape[1]), (depth.shape[0], 1))
-    Y = np.tile(np.arange(depth.shape[0]), (depth.shape[1], 1)).T
+    X = np.tile(np.arange(depth.shape[1], dtype=np.float32) + bbox[0], (depth.shape[0], 1))
+    Y = np.tile(np.arange(depth.shape[0], dtype=np.float32) + bbox[1], (depth.shape[1], 1)).T
 
     Z = depth / args.scaling_factor
     X = np.multiply(X-args.cx, Z) / args.fx
