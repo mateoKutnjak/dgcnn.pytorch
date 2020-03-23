@@ -126,7 +126,7 @@ def load_inputs(example_path, obj_name, root):
 
 def preprocess(depth, mask):
     bbox = util.get_bbox_from_mask(mask)
-    return util.crop_data(depth, mask, bbox), (bbox[0], bbox[1])
+    return util.crop_data(rgb=None, depth=depth, mask=mask, bbox=bbox), (bbox[0], bbox[1])
 
 
 def generate_pointcloud(depth, mask, fx, fy, cx, cy, offsets, scaling_factor=1.0, points_limit=2048):
