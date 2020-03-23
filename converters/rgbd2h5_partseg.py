@@ -98,11 +98,12 @@ def create_dataset(example_paths, root):
 
 def create_single_data(example_path, obj_name, root):
     depth, mask = load_inputs(example_path, obj_name, root)
-    depth, mask = preprocess(depth, mask)
+    (depth, mask), offsets = preprocess(depth, mask)
 
     X, Y, Z, mask = generate_pointcloud(
         depth, mask, 
-        fx=args.fx, fy=args.fy, cx=args.cx, cy=args.cy, 
+        fx=args.fx, fy=args.fy, cx=args.cx, cy=args.cy,
+        offsets = offsets,
         points_limit=args.points_limit,
         scaling_factor=args.scaling_factor)
     
@@ -125,12 +126,12 @@ def load_inputs(example_path, obj_name, root):
 
 def preprocess(depth, mask):
     bbox = util.get_bbox_from_mask(mask)
-    return util.crop_data(depth, mask, bbox)
+    return util.crop_data(depth, mask, bbox), (bbox[0], bbox[1])
 
 
-def generate_pointcloud(depth, mask, fx, fy, cx, cy, scaling_factor=1.0, points_limit=2048):
-    X = np.tile(np.arange(depth.shape[1]), (depth.shape[0], 1))
-    Y = np.tile(np.arange(depth.shape[0]), (depth.shape[1], 1)).T
+def generate_pointcloud(depth, mask, fx, fy, cx, cy, offsets, scaling_factor=1.0, points_limit=2048):
+    X = np.tile(np.arange(depth.shape[1], dtype=np.float32) + offsets[0], (depth.shape[0], 1))
+    Y = np.tile(np.arange(depth.shape[0], dtype=np.float32) + offsets[0], (depth.shape[1], 1)).T
 
     Z = depth / args.scaling_factor
     X = np.multiply(X-cx, Z) / fx
