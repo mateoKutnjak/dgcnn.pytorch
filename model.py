@@ -351,7 +351,7 @@ class DGCNN_semseg(nn.Module):
                                    self.bn8,
                                    nn.LeakyReLU(negative_slope=0.2))
         self.dp1 = nn.Dropout(p=args.dropout)
-        self.conv9 = nn.Conv1d(256, 13, kernel_size=1, bias=False)
+        self.conv9 = nn.Conv1d(256, 3, kernel_size=1, bias=False)
         
 
     def forward(self, x):

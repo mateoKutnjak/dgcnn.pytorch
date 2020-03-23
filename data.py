@@ -144,9 +144,9 @@ def prepare_test_data_semseg():
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     DATA_DIR = os.path.join(BASE_DIR, 'data')
     if not os.path.exists(os.path.join(DATA_DIR, 'stanford_indoor3d')):
-        os.system('python prepare_data/collect_indoor3d_data.py')
+        os.system('python3 prepare_data/collect_indoor3d_data.py')
     if not os.path.exists(os.path.join(DATA_DIR, 'indoor3d_sem_seg_hdf5_data_test')):
-        os.system('python prepare_data/gen_indoor3d_h5.py')
+        os.system('python3 prepare_data/gen_indoor3d_h5.py')
 
 
 def load_data_semseg(partition, test_area):
@@ -185,6 +185,28 @@ def load_data_semseg(partition, test_area):
         all_data = data_batches[test_idxs, ...]
         all_seg = seg_batches[test_idxs, ...]
     return all_data, all_seg
+
+
+def load_data_custom_semseg(partition, test_area):
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    DATA_DIR = os.path.join(BASE_DIR, 'data')
+    all_data = []
+    all_label = []
+    print(partition)
+    if partition == 'train':
+        file = glob.glob(os.path.join(DATA_DIR, 'custom_sem_seg_hdf5_data', '*train*.h5'))
+    else:
+        file = glob.glob(os.path.join(DATA_DIR, 'custom_sem_seg_hdf5_data', '*test*.h5'))
+    for h5_name in file:
+        f = h5py.File(h5_name, 'r+')
+        data = f['data'][:].astype('float32')
+        label = f['label'][:].astype('int64')
+        f.close()
+        all_data.append(data)
+        all_label.append(label)
+    all_data = np.concatenate(all_data, axis=0)
+    all_label = np.concatenate(all_label, axis=0)
+    return all_data, all_label
 
 
 def translate_pointcloud(pointcloud):
@@ -307,6 +329,27 @@ class CustomShapeNetPart(Dataset):
 class S3DIS(Dataset):
     def __init__(self, num_points=4096, partition='train', test_area='1'):
         self.data, self.seg = load_data_semseg(partition, test_area)
+        self.num_points = num_points
+        self.partition = partition        
+
+    def __getitem__(self, item):
+        pointcloud = self.data[item][:self.num_points]
+        seg = self.seg[item][:self.num_points]
+        if self.partition == 'train':
+            indices = list(range(pointcloud.shape[0]))
+            np.random.shuffle(indices)
+            pointcloud = pointcloud[indices]
+            seg = seg[indices]
+        seg = torch.LongTensor(seg)
+        return pointcloud, seg
+
+    def __len__(self):
+        return self.data.shape[0]
+
+
+class CustomS3DIS(Dataset):
+    def __init__(self, num_points=4096, partition='train', test_area='1'):
+        self.data, self.seg = load_data_custom_semseg(partition, test_area)
         self.num_points = num_points
         self.partition = partition        
 
