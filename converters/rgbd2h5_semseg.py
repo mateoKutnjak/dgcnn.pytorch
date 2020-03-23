@@ -64,72 +64,74 @@ def create_dataset(example_paths, root):
         train_example_paths.set_description('Generating training data...')
         test_example_paths.set_description('Generating test data...')
 
-        train_data, train_label, train_seg = [], [], []
-        test_data, test_label, test_seg = [], [], []
+        train_data, train_label = [], []
+        test_data, test_label = [], []
 
         for example_path in train_example_paths:
-            data, label, seg = create_single_data(example_path, obj_name, root)
+            data, label = create_single_data(example_path, obj_name, root)
 
             train_data.append(data)
             train_label.append(label)
-            train_seg.append(seg)
 
         for example_path in test_example_paths:
-            data, label, seg = create_single_data(example_path, obj_name, root)
+            data, label = create_single_data(example_path, obj_name, root)
 
             test_data.append(data)
             test_label.append(label)
-            test_seg.append(seg)
 
     dataset_train = {
         'data': np.array(train_data), 
-        'label': np.array(train_label), 
-        'seg': np.array(train_seg)
+        'label': np.array(train_label)
     }
 
     dataset_test = {
         'data': np.array(test_data), 
-        'label': np.array(test_label), 
-        'seg': np.array(test_seg)
+        'label': np.array(test_label)
     }
 
     return dataset_train, dataset_test
 
 
 def create_single_data(example_path, obj_name, root):
-    depth, mask = load_inputs(example_path, obj_name, root)
-    (depth, mask), offsets = preprocess(depth, mask)
+    rgb, depth, mask = load_inputs(example_path, obj_name, root)
+    (rgb, depth, mask), offsets = preprocess(rgb, depth, mask)
 
-    X, Y, Z, mask = generate_pointcloud(
-        depth, mask, 
+    (X, Y, Z, R, G, B, norm_X, norm_Y, norm_Z), mask = generate_pointcloud(
+        rgb, depth, mask, 
         fx=args.fx, fy=args.fy, cx=args.cx, cy=args.cy,
         offsets = offsets,
         points_limit=args.points_limit,
         scaling_factor=args.scaling_factor)
-    
-    data = np.vstack((X, Y, Z)).T
-    label = np.array([1])  # TODO remove hardcoded
-    seg = mask
 
-    return data, label, seg
+    data = np.vstack((X, Y, Z, R, G, B, norm_X, norm_Y, norm_Z)).T
+    label = mask
+
+    return data, label
 
 
 def load_inputs(example_path, obj_name, root):
+    rgb_filename = os.path.join(root, obj_name, 'rgb', '{}.png'.format(example_path))
     depth_filename = os.path.join(root, obj_name, 'depth', '{}.exr'.format(example_path))
     mask_filename = os.path.join(root, obj_name, 'mask', '{}.png'.format(example_path))
 
+    rgb = cv2.cvtColor(cv2.imread(rgb_filename), cv2.COLOR_BGR2RGB)
     depth = cv2.imread(depth_filename, cv2.IMREAD_ANYCOLOR | cv2.IMREAD_ANYDEPTH)[:, :, 0]
     mask = cv2.imread(mask_filename, cv2.IMREAD_GRAYSCALE)
 
-    return depth, mask
+    return rgb, depth, mask
 
 
-def preprocess(depth, mask):
+def preprocess(rgb, depth, mask):
     bbox = util.get_bbox_from_mask(mask)
-    return util.crop_data(depth, mask, bbox), (bbox[0], bbox[1])
+    bbox = list(bbox)
+    bbox[0] = np.maximum(0, bbox[0]-50)
+    bbox[1] = np.maximum(0, bbox[1]-50)
+    bbox[2] = np.minimum(rgb.shape[1]-1, bbox[2]+50)
+    bbox[3] = np.minimum(rgb.shape[0]-1, bbox[3]+50)
+    return util.crop_data(rgb=rgb, depth=depth, mask=mask, bbox=bbox), (bbox[0], bbox[1])
 
 
-def generate_pointcloud(depth, mask, fx, fy, cx, cy, offsets, scaling_factor=1.0, points_limit=2048):
+def generate_pointcloud(rgb, depth, mask, fx, fy, cx, cy, offsets, scaling_factor=1.0, points_limit=4096):
     X = np.tile(np.arange(depth.shape[1], dtype=np.float32) + offsets[0], (depth.shape[0], 1))
     Y = np.tile(np.arange(depth.shape[0], dtype=np.float32) + offsets[0], (depth.shape[1], 1)).T
 
@@ -137,21 +139,41 @@ def generate_pointcloud(depth, mask, fx, fy, cx, cy, offsets, scaling_factor=1.0
     X = np.multiply(X-cx, Z) / fx
     Y = np.multiply(Y-cy, Z) / fy
 
-    return limit_points(X, Y, Z, mask, points_limit=points_limit)
+    indices = choose_indices(X.shape, limit=points_limit)
+
+    X = X[indices]
+    Y = Y[indices]
+    Z = Z[indices]
+    R = rgb[:, :, 0][indices]
+    G = rgb[:, :, 1][indices]
+    B = rgb[:, :, 2][indices]
+    norm_X = normalize(X)
+    norm_Y = normalize(Y)
+    norm_Z = normalize(Z)
+
+    mask = mask[indices]
+
+    # TODO check normalization method 
+
+    return (X, Y, Z, R, G, B, norm_X, norm_Y, norm_Z), mask
 
 
-def limit_points(X, Y, Z, mask, points_limit=2048):
-    random_pixels = np.random.choice(X.size, size=points_limit, replace=False)
-    random_pixels = np.unravel_index(random_pixels, X.shape)
+def normalize(x):
+    min, max = np.min(x), np.max(x)
+    return (x-min) / (max-min)
 
-    return X[random_pixels], Y[random_pixels], Z[random_pixels], mask[random_pixels]
+
+def choose_indices(shape, limit=4096):
+    random_pixels = np.random.choice((shape[0] * shape[1]), size=limit, replace=False)
+    random_pixels = np.unravel_index(random_pixels, shape)
+
+    return random_pixels
 
 
 def write(dataset, filename):
     with h5py.File(filename, "w") as f:
         data = f.create_dataset('data', data=dataset['data'])
         label = f.create_dataset("label", data=dataset['label'])
-        pid = f.create_dataset("pid", data=dataset['seg'])
 
 
 def execute(args):
@@ -172,7 +194,7 @@ if __name__ == '__main__':
     parser.add_argument('--cx', type=float, required=True, help='principal point x')
     parser.add_argument('--cy', type=float, required=True, help='principal point y')
     parser.add_argument('--scaling-factor', type=float, default=1.0, help='scaling factor')
-    parser.add_argument('--points-limit', '-l', type=int, default=2048, help='points number limit')
+    parser.add_argument('--points-limit', '-l', type=int, default=4096, help='points number limit')
     parser.add_argument('--train-test-split','-s', type=float, default=0.8, help='train test split')
 
     global args

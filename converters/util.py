@@ -1,13 +1,15 @@
 import numpy as np
 
 
-def crop_data(depth, mask, bbox):
+def crop_data(rgb=None, depth=None, mask=None, bbox=None):
     x1, y1, x2, y2 = bbox
 
+    if rgb is not None:
+        rgb = rgb[y1:y2, x1:x2]
     depth = depth[y1:y2, x1:x2]
     mask = mask[y1:y2, x1:x2]
 
-    return depth, mask
+    return rgb, depth, mask
 
 
 def get_bbox_from_mask(mask):
