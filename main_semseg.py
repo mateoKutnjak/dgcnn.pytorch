@@ -51,9 +51,9 @@ def calculate_sem_IoU(pred_np, seg_np):
 
 def train(args, io):
     train_loader = DataLoader(S3DIS(partition='train', num_points=args.num_points, test_area=args.test_area), 
-                              num_workers=8, batch_size=args.batch_size, shuffle=True, drop_last=True)
+                              num_workers=0, batch_size=args.batch_size, shuffle=True, drop_last=True)
     test_loader = DataLoader(S3DIS(partition='test', num_points=args.num_points, test_area=args.test_area), 
-                            num_workers=8, batch_size=args.test_batch_size, shuffle=True, drop_last=False)
+                            num_workers=0, batch_size=args.test_batch_size, shuffle=True, drop_last=False)
 
     device = torch.device("cuda" if args.cuda else "cpu")
 
@@ -99,6 +99,8 @@ def train(args, io):
             data = data.permute(0, 2, 1)
             batch_size = data.size()[0]
             opt.zero_grad()
+            import pdb
+            pdb.set_trace()
             seg_pred = model(data)
             seg_pred = seg_pred.permute(0, 2, 1).contiguous()
             loss = criterion(seg_pred.view(-1, 13), seg.view(-1,1).squeeze())
@@ -106,6 +108,7 @@ def train(args, io):
             opt.step()
             pred = seg_pred.max(dim=2)[1]               # (batch_size, num_points)
             count += batch_size
+            print("Train: ", count, loss.item())
             train_loss += loss.item() * batch_size
             seg_np = seg.cpu().numpy()                  # (batch_size, num_points)
             pred_np = pred.detach().cpu().numpy()       # (batch_size, num_points)
@@ -124,14 +127,14 @@ def train(args, io):
         train_true_cls = np.concatenate(train_true_cls)
         train_pred_cls = np.concatenate(train_pred_cls)
         train_acc = metrics.accuracy_score(train_true_cls, train_pred_cls)
-        avg_per_class_acc = metrics.balanced_accuracy_score(train_true_cls, train_pred_cls)
+        # avg_per_class_acc = metrics.balanced_accuracy_score(train_true_cls, train_pred_cls)
         train_true_seg = np.concatenate(train_true_seg, axis=0)
         train_pred_seg = np.concatenate(train_pred_seg, axis=0)
         train_ious = calculate_sem_IoU(train_pred_seg, train_true_seg)
-        outstr = 'Train %d, loss: %.6f, train acc: %.6f, train avg acc: %.6f, train iou: %.6f' % (epoch, 
+        outstr = 'Train %d, loss: %.6f, train acc: %.6f, train iou: %.6f' % (epoch, 
                                                                                                   train_loss*1.0/count,
                                                                                                   train_acc,
-                                                                                                  avg_per_class_acc,
+                                                                                                  # avg_per_class_acc,
                                                                                                   np.mean(train_ious))
         io.cprint(outstr)
 
@@ -154,6 +157,7 @@ def train(args, io):
             loss = criterion(seg_pred.view(-1, 13), seg.view(-1,1).squeeze())
             pred = seg_pred.max(dim=2)[1]
             count += batch_size
+            print("Test: ", count, loss.item())
             test_loss += loss.item() * batch_size
             seg_np = seg.cpu().numpy()
             pred_np = pred.detach().cpu().numpy()
@@ -164,15 +168,18 @@ def train(args, io):
         test_true_cls = np.concatenate(test_true_cls)
         test_pred_cls = np.concatenate(test_pred_cls)
         test_acc = metrics.accuracy_score(test_true_cls, test_pred_cls)
-        avg_per_class_acc = metrics.balanced_accuracy_score(test_true_cls, test_pred_cls)
+        # avg_per_class_acc = metrics.balanced_accuracy_score(test_true_cls, test_pred_cls)
         test_true_seg = np.concatenate(test_true_seg, axis=0)
         test_pred_seg = np.concatenate(test_pred_seg, axis=0)
         test_ious = calculate_sem_IoU(test_pred_seg, test_true_seg)
-        outstr = 'Test %d, loss: %.6f, test acc: %.6f, test avg acc: %.6f, test iou: %.6f' % (epoch,
+        outstr = 'Test %d, loss: %.6f, test acc: %.6f, test iou: %.6f' % (epoch,
                                                                                               test_loss*1.0/count,
                                                                                               test_acc,
-                                                                                              avg_per_class_acc,
+                                                                                              # avg_per_class_acc,
                                                                                               np.mean(test_ious))
+        import pdb
+        pdb.set_trace()
+        
         io.cprint(outstr)
         if np.mean(test_ious) >= best_test_iou:
             best_test_iou = np.mean(test_ious)

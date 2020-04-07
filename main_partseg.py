@@ -114,6 +114,8 @@ def train(args, io):
         train_pred_seg = []
         train_label_seg = []
         for data, label, seg in train_loader:
+            # import visualization
+            # visualization.plot_partseg(data, seg)
             seg = seg - seg_start_index
             label_one_hot = np.zeros((label.shape[0], 16))
             for idx in range(label.shape[0]):
@@ -249,6 +251,8 @@ def test(args, io):
         seg_pred = model(data, label_one_hot)
         seg_pred = seg_pred.permute(0, 2, 1).contiguous()
         pred = seg_pred.max(dim=2)[1]
+        # import visualization
+        # visualization.plot_partseg(data, seg)
         seg_np = seg.cpu().numpy()
         pred_np = pred.detach().cpu().numpy()
         test_true_cls.append(seg_np.reshape(-1))

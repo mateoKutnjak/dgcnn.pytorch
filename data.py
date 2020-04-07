@@ -122,10 +122,10 @@ def load_data_custom_partseg(partition):
     all_label = []
     all_seg = []
     if partition == 'trainval':
-        file = glob.glob(os.path.join(DATA_DIR, 'custom*hdf5*', '*train*.h5')) \
-               + glob.glob(os.path.join(DATA_DIR, 'custom*hdf5*', '*val*.h5'))
+        file = glob.glob(os.path.join(DATA_DIR, 'custom_part_seg_hdf5*', '*train*.h5')) \
+               + glob.glob(os.path.join(DATA_DIR, 'custom_part_seg_hdf5*', '*val*.h5'))
     else:
-        file = glob.glob(os.path.join(DATA_DIR, 'custom*hdf5*', '*%s*.h5'%partition))
+        file = glob.glob(os.path.join(DATA_DIR, 'custom_part_seg_hdf5*', '*%s*.h5'%partition))
     for h5_name in file:
         f = h5py.File(h5_name, 'r+')
         data = f['data'][:].astype('float32')

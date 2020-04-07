@@ -75,6 +75,8 @@ def insert_batch(data, label, last_batch=False):
 sample_cnt = 0
 for i, data_label_filename in enumerate(data_label_files):
     print(data_label_filename)
+    import pdb
+    pdb.set_trace()
     data, label = indoor3d_util.room2blocks_wrapper_normalized(data_label_filename, NUM_POINT, block_size=1.0, stride=1,
                                                  random_sample=False, sample_num=None)
     print('{0}, {1}'.format(data.shape, label.shape))

@@ -23,8 +23,8 @@ from torch.utils.data import DataLoader
 from util import cal_loss, IOStream
 import sklearn.metrics as metrics
 
-seg_num = [4, 2, 2, 4, 4, 3, 3, 2, 4, 2, 6, 2, 3, 3, 3, 3]
-index_start = [0, 4, 6, 8, 12, 16, 19, 22, 24, 28, 30, 36, 38, 41, 44, 47]
+seg_num = [0, 1, 2]
+index_start = [0, 0]
 
 def _init_():
     if not os.path.exists('checkpoints'):

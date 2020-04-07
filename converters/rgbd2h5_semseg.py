@@ -144,9 +144,9 @@ def generate_pointcloud(rgb, depth, mask, fx, fy, cx, cy, offsets, scaling_facto
     X = X[indices]
     Y = Y[indices]
     Z = Z[indices]
-    R = rgb[:, :, 0][indices]
-    G = rgb[:, :, 1][indices]
-    B = rgb[:, :, 2][indices]
+    R = rgb[:, :, 0][indices] / 255.0
+    G = rgb[:, :, 1][indices] / 255.0 
+    B = rgb[:, :, 2][indices] / 255.0
     norm_X = normalize(X)
     norm_Y = normalize(Y)
     norm_Z = normalize(Z)

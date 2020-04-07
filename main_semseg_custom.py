@@ -214,6 +214,8 @@ def test(args, io):
                 data, seg = data.to(device), seg.to(device)
                 data = data.permute(0, 2, 1)
                 batch_size = data.size()[0]
+                import pdb
+                pdb.set_trace()
                 seg_pred = model(data)
                 seg_pred = seg_pred.permute(0, 2, 1).contiguous()
                 pred = seg_pred.max(dim=2)[1]
